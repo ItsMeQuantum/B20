@@ -1,4 +1,8 @@
-# B20 --- Base-Native Token Creator
+# B20 -- Base Native Token Creator
+
+B20 is a native token standard on Coinbase’s Layer-2 network Base, introduced with the Beryl network upgrade. It is a full ERC-20 superset implemented via Rust precompiles rather than custom smart contracts, offering lower gas costs, higher throughput, and built-in regulatory and compliance features.
+
+B20 tokens operate directly inside the Base node software via Rust precompiles. When you interact with a B20 token, the network bypasses the EVM interpreter entirely. It executes the logic natively in Rust, which is significantly faster and more resource efficient.
 
 ```{=html}
 <p align="center">
