@@ -4,6 +4,10 @@ B20 is a native token standard on Coinbase’s Layer-2 network Base, introduced 
 
 B20 tokens operate directly inside the Base node software via Rust precompiles. When you interact with a B20 token, the network bypasses the EVM interpreter entirely. It executes the logic natively in Rust, which is significantly faster and more resource efficient.
 
+
+## Prerequisites
+
+
 ```{=html}
 <p align="center">
 ```
