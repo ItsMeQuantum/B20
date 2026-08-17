@@ -88,7 +88,7 @@ layers:
 ┌──────────────────────────────────────────────────────────┐
 │                 B20 FACTORY PRECOMPILE                   │
 │                                                          │
-│  0xB20f000000000000000000000000000000000000             │
+│  0xB20f000000000000000000000000000000000000              │
 │                                                          │
 │  • determines the token address                          │
 │  • creates the B20 token                                 │
@@ -102,7 +102,7 @@ layers:
 │                                                          │
 │  ERC-20-like token surface + B20 features                │
 │                                                          │
-│  • transfers                                            │
+│  • transfers                                             │
 │  • approvals                                             │
 │  • minting                                               │
 │  • burning                                               │
