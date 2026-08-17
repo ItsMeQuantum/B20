@@ -1,0 +1,2014 @@
+{
+	"id": "ee58215726ea2350951f7d42df55c0d9",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.34",
+	"solcLongVersion": "0.8.34+commit.80d5c536",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"B20/IB20Factory.sol": {
+				"content": "// SPDX-License-Identifier: MIT\r\npragma solidity >=0.8.20 <0.9.0;\r\n\r\n/// @title IB20Factory\r\n///\r\n/// @notice Singleton factory precompile for creating B-20 tokens of any variant. A single\r\n///         entry point `createB20` dispatches on a `B20Variant` discriminator; variant-specific\r\n///         arguments are ABI-encoded into `params` with a leading `version` byte.\r\ninterface IB20Factory {\r\n    /*//////////////////////////////////////////////////////////////\r\n                                  TYPES\r\n    //////////////////////////////////////////////////////////////*/\r\n\r\n    /// @notice Variant of a B-20 token. Encoded in address byte `[10]`.\r\n    ///\r\n    /// @param ASSET      Asset variant (configurable `decimals`, multiplier, announcements, batched issuance / clawback).\r\n    /// @param STABLECOIN Stablecoin variant (fixed `6` decimals, immutable `currency`).\r\n    enum B20Variant {\r\n        ASSET,\r\n        STABLECOIN\r\n    }\r\n\r\n    /// @notice Creation parameters for a Stablecoin-variant B-20 token. ABI-encoded into `params`.\r\n    struct B20StablecoinCreateParams {\r\n        /// @dev Encoding version. Currently `1`.\r\n        uint8 version;\r\n        /// @dev ERC-20 token name.\r\n        string name;\r\n        /// @dev ERC-20 token symbol.\r\n        string symbol;\r\n        /// @dev Initial holder of `DEFAULT_ADMIN_ROLE`, or `address(0)` to deploy admin-less.\r\n        address initialAdmin;\r\n        /// @dev Immutable self-declared currency code; uppercase ASCII `A`-`Z` only.\r\n        string currency;\r\n    }\r\n\r\n    /// @notice Creation parameters for an Asset-variant B-20 token. ABI-encoded into `params`.\r\n    struct B20AssetCreateParams {\r\n        /// @dev Encoding version. Currently `1`.\r\n        uint8 version;\r\n        /// @dev ERC-20 token name.\r\n        string name;\r\n        /// @dev ERC-20 token symbol.\r\n        string symbol;\r\n        /// @dev Initial holder of `DEFAULT_ADMIN_ROLE`, or `address(0)` to deploy admin-less.\r\n        address initialAdmin;\r\n        /// @dev ERC-20 `decimals` value. Immutable post-creation. Must be in the inclusive\r\n        ///      range `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`\r\n        ///      (`[6, 18]`); out-of-range values revert with `InvalidDecimals`.\r\n        uint8 decimals;\r\n    }\r\n\r\n    /// @notice Event payload carried in the `variantEventParams` field of `B20Created` for\r\n    ///         STABLECOIN-variant tokens. ABI-encoded and prefixed with a version byte.\r\n    struct B20StablecoinEventParams {\r\n        /// @dev Event-encoding version. Currently `1`. Independent of `B20StablecoinCreateParams.version`.\r\n        uint8 version;\r\n        /// @dev Stablecoin currency code, identical to the value passed in\r\n        ///      `B20StablecoinCreateParams.currency`.\r\n        string currency;\r\n    }\r\n\r\n    /*//////////////////////////////////////////////////////////////\r\n                                 ERRORS\r\n    //////////////////////////////////////////////////////////////*/\r\n\r\n    /// @notice ETH was attached to a call targeting a nonpayable factory selector.\r\n    error NonPayable();\r\n\r\n    /// @notice A token already exists at the deterministic address derived from\r\n    ///         `(variant, msg.sender, salt)`. Caller must use a different salt.\r\n    error TokenAlreadyExists(address token);\r\n\r\n    /// @notice `variant` is not a recognized `B20Variant`.\r\n    error InvalidVariant();\r\n\r\n    /// @notice The leading `version` byte in `params` does not match any known encoding for the requested variant.\r\n    error UnsupportedVersion(uint8 version, B20Variant variant);\r\n\r\n    /// @notice A required string argument was the empty string.\r\n    ///\r\n    /// @param field Name of the missing field (e.g. `\"currency\"`).\r\n    error MissingRequiredField(string field);\r\n\r\n    /// @notice The stablecoin `currency` was non-empty but contained a non-`A`-`Z` byte.\r\n    error InvalidCurrency(string code);\r\n\r\n    /// @notice The asset `decimals` was outside the allowed inclusive range\r\n    ///         `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.\r\n    ///\r\n    /// @param decimals Offending decimals value.\r\n    error InvalidDecimals(uint8 decimals);\r\n\r\n    /// @notice One of the `initCalls` reverted. The factory bubbles the underlying revert reason\r\n    ///         where the call returns one; this error wraps empty reverts.\r\n    error InitCallFailed(uint256 index);\r\n\r\n    /*//////////////////////////////////////////////////////////////\r\n                                 EVENTS\r\n    //////////////////////////////////////////////////////////////*/\r\n\r\n    /// @notice Emitted once per `createB20` invocation, after the token's identity is sealed\r\n    ///         and before any `initCalls` are dispatched.\r\n    ///\r\n    /// @dev `variantEventParams` carries variant-specific immutable identity data, ABI-encoded\r\n    ///      and prefixed with a version byte. Empty for ASSET; for STABLECOIN,\r\n    ///      `abi.encode(B20StablecoinEventParams)` with `currency`.\r\n    /// @dev `decimals` mirrors the value chosen at creation: configurable in\r\n    ///      `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]` for ASSET\r\n    ///      (from `B20AssetCreateParams.decimals`); hardcoded to `6` for STABLECOIN.\r\n    event B20Created(\r\n        address indexed token,\r\n        B20Variant indexed variant,\r\n        string name,\r\n        string symbol,\r\n        uint8 decimals,\r\n        bytes variantEventParams\r\n    );\r\n\r\n    /*//////////////////////////////////////////////////////////////\r\n                                 CREATE\r\n    //////////////////////////////////////////////////////////////*/\r\n\r\n    /// @notice Creates a B-20 token of the given `variant` at the deterministic address derived\r\n    ///         from `(variant, msg.sender, salt)`, then dispatches each entry in `initCalls` on\r\n    ///         the new token. Emits `B20Created`.\r\n    ///\r\n    /// @dev Reverts with `NonPayable` when ETH is attached to the call.\r\n    /// @dev Reverts with IActivationRegistry.FeatureNotActivated when the variant feature is not activated.\r\n    /// @dev Reverts with `InvalidVariant` when `variant` is outside the `B20Variant` range.\r\n    /// @dev Reverts with `UnsupportedVersion` when the leading `version` byte in `params` is unrecognized for `variant`.\r\n    /// @dev Reverts with `MissingRequiredField` when a required string field is empty (e.g. stablecoin `currency`).\r\n    /// @dev Reverts with `InvalidCurrency` when a stablecoin `currency` is non-empty but contains a non-`A`-`Z` byte.\r\n    /// @dev Reverts with `InvalidDecimals` when an asset `decimals` is outside `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.\r\n    /// @dev Reverts with `TokenAlreadyExists` when a token already exists at the derived address.\r\n    /// @dev Reverts with `InitCallFailed` (or the bubbled inner reason) when any entry in `initCalls` reverts.\r\n    /// @dev Each `initCall` executes on the new token within the creation (bootstrap) window, during which\r\n    ///      factory-originated calls bypass the token's role gates and its transfer-side policy gates\r\n    ///      (`TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY`, `TRANSFER_EXECUTOR_POLICY`) — so admin-gated\r\n    ///      setup (e.g. `grantRole`, `updatePolicy`, `updateSupplyCap`) and bootstrap transfers succeed without\r\n    ///      the factory holding any role. The bypass is deliberately NOT total:\r\n    ///      - `MINT_RECEIVER_POLICY` is ALWAYS enforced, including for factory-originated mints, so new supply is\r\n    ///        never issued to a policy-denied recipient even at creation. An `initCalls` bundle that sets a\r\n    ///        restrictive `MINT_RECEIVER_POLICY` and then mints to a non-authorized account reverts\r\n    ///        `PolicyForbids(MINT_RECEIVER_POLICY, ...)` (bubbled out of `createB20`).\r\n    ///      - Pause is never bypassed. It defaults to nothing-paused at creation, so a start-paused\r\n    ///        configuration must sequence its `pause(...)` call last among the `initCalls`.\r\n    ///      - Token invariants (supply-cap math, balance accounting) are never bypassed.\r\n    ///      The window closes when `createB20` returns; the factory retains no persisted access.\r\n    ///\r\n    /// @param variant   Which variant struct `params` decodes as.\r\n    /// @param salt      Caller-chosen salt for deterministic address derivation.\r\n    /// @param params    ABI-encoded variant-specific creation struct, leading with the version byte.\r\n    /// @param initCalls Bootstrap calls invoked on the new token after identity is sealed.\r\n    ///\r\n    /// @return token The address of the newly created token.\r\n    function createB20(B20Variant variant, bytes32 salt, bytes calldata params, bytes[] calldata initCalls)\r\n        external\r\n        payable\r\n        returns (address token);\r\n\r\n    /*//////////////////////////////////////////////////////////////\r\n                            ADDRESS QUERIES\r\n    //////////////////////////////////////////////////////////////*/\r\n\r\n    /// @notice Returns the deterministic address `createB20` would assign for `(variant, sender, salt)`. Never reverts.\r\n    ///\r\n    /// @param variant Variant of the token whose address is being predicted.\r\n    /// @param sender  Account that would call `createB20`.\r\n    /// @param salt    Caller-chosen salt.\r\n    ///\r\n    /// @return The deterministic token address.\r\n    function getB20Address(B20Variant variant, address sender, bytes32 salt) external view returns (address);\r\n\r\n    /// @notice Returns whether `token` was created by this factory, recovered from the address prefix. Never reverts.\r\n    ///\r\n    /// @param token Address to check.\r\n    ///\r\n    /// @return Whether `token` matches the B-20 address prefix.\r\n    function isB20(address token) external view returns (bool);\r\n\r\n    /// @notice Returns whether `createB20` has run to completion at `token`. Flips exactly once,\r\n    ///         the moment the creating `createB20` call returns. Never reverts.\r\n    ///\r\n    /// @param token Address to check.\r\n    ///\r\n    /// @return Whether `token` is an initialized B-20.\r\n    function isB20Initialized(address token) external view returns (bool);\r\n}"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": false,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": []
+		}
+	},
+	"output": {
+		"contracts": {
+			"B20/IB20Factory.sol": {
+				"IB20Factory": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "index",
+									"type": "uint256"
+								}
+							],
+							"name": "InitCallFailed",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "string",
+									"name": "code",
+									"type": "string"
+								}
+							],
+							"name": "InvalidCurrency",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint8",
+									"name": "decimals",
+									"type": "uint8"
+								}
+							],
+							"name": "InvalidDecimals",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidVariant",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "string",
+									"name": "field",
+									"type": "string"
+								}
+							],
+							"name": "MissingRequiredField",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "NonPayable",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								}
+							],
+							"name": "TokenAlreadyExists",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint8",
+									"name": "version",
+									"type": "uint8"
+								},
+								{
+									"internalType": "enum IB20Factory.B20Variant",
+									"name": "variant",
+									"type": "uint8"
+								}
+							],
+							"name": "UnsupportedVersion",
+							"type": "error"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								},
+								{
+									"indexed": true,
+									"internalType": "enum IB20Factory.B20Variant",
+									"name": "variant",
+									"type": "uint8"
+								},
+								{
+									"indexed": false,
+									"internalType": "string",
+									"name": "name",
+									"type": "string"
+								},
+								{
+									"indexed": false,
+									"internalType": "string",
+									"name": "symbol",
+									"type": "string"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint8",
+									"name": "decimals",
+									"type": "uint8"
+								},
+								{
+									"indexed": false,
+									"internalType": "bytes",
+									"name": "variantEventParams",
+									"type": "bytes"
+								}
+							],
+							"name": "B20Created",
+							"type": "event"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "enum IB20Factory.B20Variant",
+									"name": "variant",
+									"type": "uint8"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "salt",
+									"type": "bytes32"
+								},
+								{
+									"internalType": "bytes",
+									"name": "params",
+									"type": "bytes"
+								},
+								{
+									"internalType": "bytes[]",
+									"name": "initCalls",
+									"type": "bytes[]"
+								}
+							],
+							"name": "createB20",
+							"outputs": [
+								{
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								}
+							],
+							"stateMutability": "payable",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "enum IB20Factory.B20Variant",
+									"name": "variant",
+									"type": "uint8"
+								},
+								{
+									"internalType": "address",
+									"name": "sender",
+									"type": "address"
+								},
+								{
+									"internalType": "bytes32",
+									"name": "salt",
+									"type": "bytes32"
+								}
+							],
+							"name": "getB20Address",
+							"outputs": [
+								{
+									"internalType": "address",
+									"name": "",
+									"type": "address"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								}
+							],
+							"name": "isB20",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "token",
+									"type": "address"
+								}
+							],
+							"name": "isB20Initialized",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"errors": {
+							"InvalidDecimals(uint8)": [
+								{
+									"params": {
+										"decimals": "Offending decimals value."
+									}
+								}
+							],
+							"MissingRequiredField(string)": [
+								{
+									"params": {
+										"field": "Name of the missing field (e.g. `\"currency\"`)."
+									}
+								}
+							]
+						},
+						"events": {
+							"B20Created(address,uint8,string,string,uint8,bytes)": {
+								"details": "`variantEventParams` carries variant-specific immutable identity data, ABI-encoded      and prefixed with a version byte. Empty for ASSET; for STABLECOIN,      `abi.encode(B20StablecoinEventParams)` with `currency`.`decimals` mirrors the value chosen at creation: configurable in      `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]` for ASSET      (from `B20AssetCreateParams.decimals`); hardcoded to `6` for STABLECOIN."
+							}
+						},
+						"kind": "dev",
+						"methods": {
+							"createB20(uint8,bytes32,bytes,bytes[])": {
+								"details": "Reverts with `NonPayable` when ETH is attached to the call.Reverts with IActivationRegistry.FeatureNotActivated when the variant feature is not activated.Reverts with `InvalidVariant` when `variant` is outside the `B20Variant` range.Reverts with `UnsupportedVersion` when the leading `version` byte in `params` is unrecognized for `variant`.Reverts with `MissingRequiredField` when a required string field is empty (e.g. stablecoin `currency`).Reverts with `InvalidCurrency` when a stablecoin `currency` is non-empty but contains a non-`A`-`Z` byte.Reverts with `InvalidDecimals` when an asset `decimals` is outside `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.Reverts with `TokenAlreadyExists` when a token already exists at the derived address.Reverts with `InitCallFailed` (or the bubbled inner reason) when any entry in `initCalls` reverts.Each `initCall` executes on the new token within the creation (bootstrap) window, during which      factory-originated calls bypass the token's role gates and its transfer-side policy gates      (`TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY`, `TRANSFER_EXECUTOR_POLICY`) — so admin-gated      setup (e.g. `grantRole`, `updatePolicy`, `updateSupplyCap`) and bootstrap transfers succeed without      the factory holding any role. The bypass is deliberately NOT total:      - `MINT_RECEIVER_POLICY` is ALWAYS enforced, including for factory-originated mints, so new supply is        never issued to a policy-denied recipient even at creation. An `initCalls` bundle that sets a        restrictive `MINT_RECEIVER_POLICY` and then mints to a non-authorized account reverts        `PolicyForbids(MINT_RECEIVER_POLICY, ...)` (bubbled out of `createB20`).      - Pause is never bypassed. It defaults to nothing-paused at creation, so a start-paused        configuration must sequence its `pause(...)` call last among the `initCalls`.      - Token invariants (supply-cap math, balance accounting) are never bypassed.      The window closes when `createB20` returns; the factory retains no persisted access.",
+								"params": {
+									"initCalls": "Bootstrap calls invoked on the new token after identity is sealed.",
+									"params": "ABI-encoded variant-specific creation struct, leading with the version byte.",
+									"salt": "Caller-chosen salt for deterministic address derivation.",
+									"variant": "Which variant struct `params` decodes as."
+								},
+								"returns": {
+									"token": "The address of the newly created token."
+								}
+							},
+							"getB20Address(uint8,address,bytes32)": {
+								"params": {
+									"salt": "Caller-chosen salt.",
+									"sender": "Account that would call `createB20`.",
+									"variant": "Variant of the token whose address is being predicted."
+								},
+								"returns": {
+									"_0": "The deterministic token address."
+								}
+							},
+							"isB20(address)": {
+								"params": {
+									"token": "Address to check."
+								},
+								"returns": {
+									"_0": "Whether `token` matches the B-20 address prefix."
+								}
+							},
+							"isB20Initialized(address)": {
+								"params": {
+									"token": "Address to check."
+								},
+								"returns": {
+									"_0": "Whether `token` is an initialized B-20."
+								}
+							}
+						},
+						"title": "IB20Factory",
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"createB20(uint8,bytes32,bytes,bytes[])": "62975e6a",
+							"getB20Address(uint8,address,bytes32)": "8c30260f",
+							"isB20(address)": "fa19b927",
+							"isB20Initialized(address)": "6a45ba98"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.34+commit.80d5c536\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"InitCallFailed\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"code\",\"type\":\"string\"}],\"name\":\"InvalidCurrency\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"}],\"name\":\"InvalidDecimals\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidVariant\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"field\",\"type\":\"string\"}],\"name\":\"MissingRequiredField\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NonPayable\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"TokenAlreadyExists\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"},{\"internalType\":\"enum IB20Factory.B20Variant\",\"name\":\"variant\",\"type\":\"uint8\"}],\"name\":\"UnsupportedVersion\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"enum IB20Factory.B20Variant\",\"name\":\"variant\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"symbol\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"decimals\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"variantEventParams\",\"type\":\"bytes\"}],\"name\":\"B20Created\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"enum IB20Factory.B20Variant\",\"name\":\"variant\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"params\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"initCalls\",\"type\":\"bytes[]\"}],\"name\":\"createB20\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"enum IB20Factory.B20Variant\",\"name\":\"variant\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"salt\",\"type\":\"bytes32\"}],\"name\":\"getB20Address\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"isB20\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"isB20Initialized\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"InvalidDecimals(uint8)\":[{\"params\":{\"decimals\":\"Offending decimals value.\"}}],\"MissingRequiredField(string)\":[{\"params\":{\"field\":\"Name of the missing field (e.g. `\\\"currency\\\"`).\"}}]},\"events\":{\"B20Created(address,uint8,string,string,uint8,bytes)\":{\"details\":\"`variantEventParams` carries variant-specific immutable identity data, ABI-encoded      and prefixed with a version byte. Empty for ASSET; for STABLECOIN,      `abi.encode(B20StablecoinEventParams)` with `currency`.`decimals` mirrors the value chosen at creation: configurable in      `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]` for ASSET      (from `B20AssetCreateParams.decimals`); hardcoded to `6` for STABLECOIN.\"}},\"kind\":\"dev\",\"methods\":{\"createB20(uint8,bytes32,bytes,bytes[])\":{\"details\":\"Reverts with `NonPayable` when ETH is attached to the call.Reverts with IActivationRegistry.FeatureNotActivated when the variant feature is not activated.Reverts with `InvalidVariant` when `variant` is outside the `B20Variant` range.Reverts with `UnsupportedVersion` when the leading `version` byte in `params` is unrecognized for `variant`.Reverts with `MissingRequiredField` when a required string field is empty (e.g. stablecoin `currency`).Reverts with `InvalidCurrency` when a stablecoin `currency` is non-empty but contains a non-`A`-`Z` byte.Reverts with `InvalidDecimals` when an asset `decimals` is outside `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.Reverts with `TokenAlreadyExists` when a token already exists at the derived address.Reverts with `InitCallFailed` (or the bubbled inner reason) when any entry in `initCalls` reverts.Each `initCall` executes on the new token within the creation (bootstrap) window, during which      factory-originated calls bypass the token's role gates and its transfer-side policy gates      (`TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY`, `TRANSFER_EXECUTOR_POLICY`) \\u2014 so admin-gated      setup (e.g. `grantRole`, `updatePolicy`, `updateSupplyCap`) and bootstrap transfers succeed without      the factory holding any role. The bypass is deliberately NOT total:      - `MINT_RECEIVER_POLICY` is ALWAYS enforced, including for factory-originated mints, so new supply is        never issued to a policy-denied recipient even at creation. An `initCalls` bundle that sets a        restrictive `MINT_RECEIVER_POLICY` and then mints to a non-authorized account reverts        `PolicyForbids(MINT_RECEIVER_POLICY, ...)` (bubbled out of `createB20`).      - Pause is never bypassed. It defaults to nothing-paused at creation, so a start-paused        configuration must sequence its `pause(...)` call last among the `initCalls`.      - Token invariants (supply-cap math, balance accounting) are never bypassed.      The window closes when `createB20` returns; the factory retains no persisted access.\",\"params\":{\"initCalls\":\"Bootstrap calls invoked on the new token after identity is sealed.\",\"params\":\"ABI-encoded variant-specific creation struct, leading with the version byte.\",\"salt\":\"Caller-chosen salt for deterministic address derivation.\",\"variant\":\"Which variant struct `params` decodes as.\"},\"returns\":{\"token\":\"The address of the newly created token.\"}},\"getB20Address(uint8,address,bytes32)\":{\"params\":{\"salt\":\"Caller-chosen salt.\",\"sender\":\"Account that would call `createB20`.\",\"variant\":\"Variant of the token whose address is being predicted.\"},\"returns\":{\"_0\":\"The deterministic token address.\"}},\"isB20(address)\":{\"params\":{\"token\":\"Address to check.\"},\"returns\":{\"_0\":\"Whether `token` matches the B-20 address prefix.\"}},\"isB20Initialized(address)\":{\"params\":{\"token\":\"Address to check.\"},\"returns\":{\"_0\":\"Whether `token` is an initialized B-20.\"}}},\"title\":\"IB20Factory\",\"version\":1},\"userdoc\":{\"errors\":{\"InitCallFailed(uint256)\":[{\"notice\":\"One of the `initCalls` reverted. The factory bubbles the underlying revert reason         where the call returns one; this error wraps empty reverts.\"}],\"InvalidCurrency(string)\":[{\"notice\":\"The stablecoin `currency` was non-empty but contained a non-`A`-`Z` byte.\"}],\"InvalidDecimals(uint8)\":[{\"notice\":\"The asset `decimals` was outside the allowed inclusive range         `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.\"}],\"InvalidVariant()\":[{\"notice\":\"`variant` is not a recognized `B20Variant`.\"}],\"MissingRequiredField(string)\":[{\"notice\":\"A required string argument was the empty string.\"}],\"NonPayable()\":[{\"notice\":\"ETH was attached to a call targeting a nonpayable factory selector.\"}],\"TokenAlreadyExists(address)\":[{\"notice\":\"A token already exists at the deterministic address derived from         `(variant, msg.sender, salt)`. Caller must use a different salt.\"}],\"UnsupportedVersion(uint8,uint8)\":[{\"notice\":\"The leading `version` byte in `params` does not match any known encoding for the requested variant.\"}]},\"events\":{\"B20Created(address,uint8,string,string,uint8,bytes)\":{\"notice\":\"Emitted once per `createB20` invocation, after the token's identity is sealed         and before any `initCalls` are dispatched.\"}},\"kind\":\"user\",\"methods\":{\"createB20(uint8,bytes32,bytes,bytes[])\":{\"notice\":\"Creates a B-20 token of the given `variant` at the deterministic address derived         from `(variant, msg.sender, salt)`, then dispatches each entry in `initCalls` on         the new token. Emits `B20Created`.\"},\"getB20Address(uint8,address,bytes32)\":{\"notice\":\"Returns the deterministic address `createB20` would assign for `(variant, sender, salt)`. Never reverts.\"},\"isB20(address)\":{\"notice\":\"Returns whether `token` was created by this factory, recovered from the address prefix. Never reverts.\"},\"isB20Initialized(address)\":{\"notice\":\"Returns whether `createB20` has run to completion at `token`. Flips exactly once,         the moment the creating `createB20` call returns. Never reverts.\"}},\"notice\":\"Singleton factory precompile for creating B-20 tokens of any variant. A single         entry point `createB20` dispatches on a `B20Variant` discriminator; variant-specific         arguments are ABI-encoded into `params` with a leading `version` byte.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"B20/IB20Factory.sol\":\"IB20Factory\"},\"evmVersion\":\"osaka\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"B20/IB20Factory.sol\":{\"keccak256\":\"0x7fa39cea339ef038fa5c7e306acf0c94dc7ae97e9d913c9f1b241ac08801f9aa\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://225f042779123f47faa5cc59b400696267107bcd6da15636fc137bc6bac42c84\",\"dweb:/ipfs/Qmbw43nZmfKKXtMKJusjykfzKbUsh4mwLnpxcNq7SnyDCD\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"errors": {
+							"InitCallFailed(uint256)": [
+								{
+									"notice": "One of the `initCalls` reverted. The factory bubbles the underlying revert reason         where the call returns one; this error wraps empty reverts."
+								}
+							],
+							"InvalidCurrency(string)": [
+								{
+									"notice": "The stablecoin `currency` was non-empty but contained a non-`A`-`Z` byte."
+								}
+							],
+							"InvalidDecimals(uint8)": [
+								{
+									"notice": "The asset `decimals` was outside the allowed inclusive range         `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`."
+								}
+							],
+							"InvalidVariant()": [
+								{
+									"notice": "`variant` is not a recognized `B20Variant`."
+								}
+							],
+							"MissingRequiredField(string)": [
+								{
+									"notice": "A required string argument was the empty string."
+								}
+							],
+							"NonPayable()": [
+								{
+									"notice": "ETH was attached to a call targeting a nonpayable factory selector."
+								}
+							],
+							"TokenAlreadyExists(address)": [
+								{
+									"notice": "A token already exists at the deterministic address derived from         `(variant, msg.sender, salt)`. Caller must use a different salt."
+								}
+							],
+							"UnsupportedVersion(uint8,uint8)": [
+								{
+									"notice": "The leading `version` byte in `params` does not match any known encoding for the requested variant."
+								}
+							]
+						},
+						"events": {
+							"B20Created(address,uint8,string,string,uint8,bytes)": {
+								"notice": "Emitted once per `createB20` invocation, after the token's identity is sealed         and before any `initCalls` are dispatched."
+							}
+						},
+						"kind": "user",
+						"methods": {
+							"createB20(uint8,bytes32,bytes,bytes[])": {
+								"notice": "Creates a B-20 token of the given `variant` at the deterministic address derived         from `(variant, msg.sender, salt)`, then dispatches each entry in `initCalls` on         the new token. Emits `B20Created`."
+							},
+							"getB20Address(uint8,address,bytes32)": {
+								"notice": "Returns the deterministic address `createB20` would assign for `(variant, sender, salt)`. Never reverts."
+							},
+							"isB20(address)": {
+								"notice": "Returns whether `token` was created by this factory, recovered from the address prefix. Never reverts."
+							},
+							"isB20Initialized(address)": {
+								"notice": "Returns whether `createB20` has run to completion at `token`. Flips exactly once,         the moment the creating `createB20` call returns. Never reverts."
+							}
+						},
+						"notice": "Singleton factory precompile for creating B-20 tokens of any variant. A single         entry point `createB20` dispatches on a `B20Variant` discriminator; variant-specific         arguments are ABI-encoded into `params` with a leading `version` byte.",
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"B20/IB20Factory.sol": {
+				"ast": {
+					"absolutePath": "B20/IB20Factory.sol",
+					"exportedSymbols": {
+						"IB20Factory": [
+							149
+						]
+					},
+					"id": 150,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								">=",
+								"0.8",
+								".20",
+								"<",
+								"0.9",
+								".0"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "33:32:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IB20Factory",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"documentation": {
+								"id": 2,
+								"nodeType": "StructuredDocumentation",
+								"src": "69:303:0",
+								"text": "@title IB20Factory\n @notice Singleton factory precompile for creating B-20 tokens of any variant. A single\n         entry point `createB20` dispatches on a `B20Variant` discriminator; variant-specific\n         arguments are ABI-encoded into `params` with a leading `version` byte."
+							},
+							"fullyImplemented": false,
+							"id": 149,
+							"linearizedBaseContracts": [
+								149
+							],
+							"name": "IB20Factory",
+							"nameLocation": "382:11:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"canonicalName": "IB20Factory.B20Variant",
+									"documentation": {
+										"id": 3,
+										"nodeType": "StructuredDocumentation",
+										"src": "584:291:0",
+										"text": "@notice Variant of a B-20 token. Encoded in address byte `[10]`.\n @param ASSET      Asset variant (configurable `decimals`, multiplier, announcements, batched issuance / clawback).\n @param STABLECOIN Stablecoin variant (fixed `6` decimals, immutable `currency`)."
+									},
+									"id": 6,
+									"members": [
+										{
+											"id": 4,
+											"name": "ASSET",
+											"nameLocation": "908:5:0",
+											"nodeType": "EnumValue",
+											"src": "908:5:0"
+										},
+										{
+											"id": 5,
+											"name": "STABLECOIN",
+											"nameLocation": "924:10:0",
+											"nodeType": "EnumValue",
+											"src": "924:10:0"
+										}
+									],
+									"name": "B20Variant",
+									"nameLocation": "886:10:0",
+									"nodeType": "EnumDefinition",
+									"src": "881:60:0"
+								},
+								{
+									"canonicalName": "IB20Factory.B20StablecoinCreateParams",
+									"documentation": {
+										"id": 7,
+										"nodeType": "StructuredDocumentation",
+										"src": "949:95:0",
+										"text": "@notice Creation parameters for a Stablecoin-variant B-20 token. ABI-encoded into `params`."
+									},
+									"id": 23,
+									"members": [
+										{
+											"constant": false,
+											"id": 10,
+											"mutability": "mutable",
+											"name": "version",
+											"nameLocation": "1151:7:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 23,
+											"src": "1145:13:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint8",
+												"typeString": "uint8"
+											},
+											"typeName": {
+												"id": 9,
+												"name": "uint8",
+												"nodeType": "ElementaryTypeName",
+												"src": "1145:5:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 13,
+											"mutability": "mutable",
+											"name": "name",
+											"nameLocation": "1213:4:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 23,
+											"src": "1206:11:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 12,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "1206:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 16,
+											"mutability": "mutable",
+											"name": "symbol",
+											"nameLocation": "1274:6:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 23,
+											"src": "1267:13:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 15,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "1267:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 19,
+											"mutability": "mutable",
+											"name": "initialAdmin",
+											"nameLocation": "1395:12:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 23,
+											"src": "1387:20:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_address",
+												"typeString": "address"
+											},
+											"typeName": {
+												"id": 18,
+												"name": "address",
+												"nodeType": "ElementaryTypeName",
+												"src": "1387:7:0",
+												"stateMutability": "nonpayable",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 22,
+											"mutability": "mutable",
+											"name": "currency",
+											"nameLocation": "1512:8:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 23,
+											"src": "1505:15:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 21,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "1505:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										}
+									],
+									"name": "B20StablecoinCreateParams",
+									"nameLocation": "1057:25:0",
+									"nodeType": "StructDefinition",
+									"scope": 149,
+									"src": "1050:478:0",
+									"visibility": "public"
+								},
+								{
+									"canonicalName": "IB20Factory.B20AssetCreateParams",
+									"documentation": {
+										"id": 24,
+										"nodeType": "StructuredDocumentation",
+										"src": "1536:91:0",
+										"text": "@notice Creation parameters for an Asset-variant B-20 token. ABI-encoded into `params`."
+									},
+									"id": 40,
+									"members": [
+										{
+											"constant": false,
+											"id": 27,
+											"mutability": "mutable",
+											"name": "version",
+											"nameLocation": "1729:7:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 40,
+											"src": "1723:13:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint8",
+												"typeString": "uint8"
+											},
+											"typeName": {
+												"id": 26,
+												"name": "uint8",
+												"nodeType": "ElementaryTypeName",
+												"src": "1723:5:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 30,
+											"mutability": "mutable",
+											"name": "name",
+											"nameLocation": "1791:4:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 40,
+											"src": "1784:11:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 29,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "1784:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 33,
+											"mutability": "mutable",
+											"name": "symbol",
+											"nameLocation": "1852:6:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 40,
+											"src": "1845:13:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 32,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "1845:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 36,
+											"mutability": "mutable",
+											"name": "initialAdmin",
+											"nameLocation": "1973:12:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 40,
+											"src": "1965:20:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_address",
+												"typeString": "address"
+											},
+											"typeName": {
+												"id": 35,
+												"name": "address",
+												"nodeType": "ElementaryTypeName",
+												"src": "1965:7:0",
+												"stateMutability": "nonpayable",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 39,
+											"mutability": "mutable",
+											"name": "decimals",
+											"nameLocation": "2270:8:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 40,
+											"src": "2264:14:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint8",
+												"typeString": "uint8"
+											},
+											"typeName": {
+												"id": 38,
+												"name": "uint8",
+												"nodeType": "ElementaryTypeName",
+												"src": "2264:5:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												}
+											},
+											"visibility": "internal"
+										}
+									],
+									"name": "B20AssetCreateParams",
+									"nameLocation": "1640:20:0",
+									"nodeType": "StructDefinition",
+									"scope": 149,
+									"src": "1633:653:0",
+									"visibility": "public"
+								},
+								{
+									"canonicalName": "IB20Factory.B20StablecoinEventParams",
+									"documentation": {
+										"id": 41,
+										"nodeType": "StructuredDocumentation",
+										"src": "2294:177:0",
+										"text": "@notice Event payload carried in the `variantEventParams` field of `B20Created` for\n         STABLECOIN-variant tokens. ABI-encoded and prefixed with a version byte."
+									},
+									"id": 48,
+									"members": [
+										{
+											"constant": false,
+											"id": 44,
+											"mutability": "mutable",
+											"name": "version",
+											"nameLocation": "2635:7:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 48,
+											"src": "2629:13:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint8",
+												"typeString": "uint8"
+											},
+											"typeName": {
+												"id": 43,
+												"name": "uint8",
+												"nodeType": "ElementaryTypeName",
+												"src": "2629:5:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 47,
+											"mutability": "mutable",
+											"name": "currency",
+											"nameLocation": "2793:8:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 48,
+											"src": "2786:15:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_string_storage_ptr",
+												"typeString": "string"
+											},
+											"typeName": {
+												"id": 46,
+												"name": "string",
+												"nodeType": "ElementaryTypeName",
+												"src": "2786:6:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_storage_ptr",
+													"typeString": "string"
+												}
+											},
+											"visibility": "internal"
+										}
+									],
+									"name": "B20StablecoinEventParams",
+									"nameLocation": "2484:24:0",
+									"nodeType": "StructDefinition",
+									"scope": 149,
+									"src": "2477:332:0",
+									"visibility": "public"
+								},
+								{
+									"documentation": {
+										"id": 49,
+										"nodeType": "StructuredDocumentation",
+										"src": "3000:79:0",
+										"text": "@notice ETH was attached to a call targeting a nonpayable factory selector."
+									},
+									"errorSelector": "6fb1b0e9",
+									"id": 51,
+									"name": "NonPayable",
+									"nameLocation": "3091:10:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 50,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "3101:2:0"
+									},
+									"src": "3085:19:0"
+								},
+								{
+									"documentation": {
+										"id": 52,
+										"nodeType": "StructuredDocumentation",
+										"src": "3112:158:0",
+										"text": "@notice A token already exists at the deterministic address derived from\n         `(variant, msg.sender, salt)`. Caller must use a different salt."
+									},
+									"errorSelector": "15ef3a57",
+									"id": 56,
+									"name": "TokenAlreadyExists",
+									"nameLocation": "3282:18:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 55,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 54,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "3309:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 56,
+												"src": "3301:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 53,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "3301:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3300:15:0"
+									},
+									"src": "3276:40:0"
+								},
+								{
+									"documentation": {
+										"id": 57,
+										"nodeType": "StructuredDocumentation",
+										"src": "3324:55:0",
+										"text": "@notice `variant` is not a recognized `B20Variant`."
+									},
+									"errorSelector": "f10e8e43",
+									"id": 59,
+									"name": "InvalidVariant",
+									"nameLocation": "3391:14:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 58,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "3405:2:0"
+									},
+									"src": "3385:23:0"
+								},
+								{
+									"documentation": {
+										"id": 60,
+										"nodeType": "StructuredDocumentation",
+										"src": "3416:111:0",
+										"text": "@notice The leading `version` byte in `params` does not match any known encoding for the requested variant."
+									},
+									"errorSelector": "c0d8b4e0",
+									"id": 67,
+									"name": "UnsupportedVersion",
+									"nameLocation": "3539:18:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 66,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 62,
+												"mutability": "mutable",
+												"name": "version",
+												"nameLocation": "3564:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 67,
+												"src": "3558:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 61,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "3558:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 65,
+												"mutability": "mutable",
+												"name": "variant",
+												"nameLocation": "3584:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 67,
+												"src": "3573:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_enum$_B20Variant_$6",
+													"typeString": "enum IB20Factory.B20Variant"
+												},
+												"typeName": {
+													"id": 64,
+													"nodeType": "UserDefinedTypeName",
+													"pathNode": {
+														"id": 63,
+														"name": "B20Variant",
+														"nameLocations": [
+															"3573:10:0"
+														],
+														"nodeType": "IdentifierPath",
+														"referencedDeclaration": 6,
+														"src": "3573:10:0"
+													},
+													"referencedDeclaration": 6,
+													"src": "3573:10:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_enum$_B20Variant_$6",
+														"typeString": "enum IB20Factory.B20Variant"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3557:35:0"
+									},
+									"src": "3533:60:0"
+								},
+								{
+									"documentation": {
+										"id": 68,
+										"nodeType": "StructuredDocumentation",
+										"src": "3601:138:0",
+										"text": "@notice A required string argument was the empty string.\n @param field Name of the missing field (e.g. `\"currency\"`)."
+									},
+									"errorSelector": "4a43ae87",
+									"id": 72,
+									"name": "MissingRequiredField",
+									"nameLocation": "3751:20:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 71,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 70,
+												"mutability": "mutable",
+												"name": "field",
+												"nameLocation": "3779:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 72,
+												"src": "3772:12:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_memory_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 69,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "3772:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3771:14:0"
+									},
+									"src": "3745:41:0"
+								},
+								{
+									"documentation": {
+										"id": 73,
+										"nodeType": "StructuredDocumentation",
+										"src": "3794:85:0",
+										"text": "@notice The stablecoin `currency` was non-empty but contained a non-`A`-`Z` byte."
+									},
+									"errorSelector": "997c1de8",
+									"id": 77,
+									"name": "InvalidCurrency",
+									"nameLocation": "3891:15:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 76,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 75,
+												"mutability": "mutable",
+												"name": "code",
+												"nameLocation": "3914:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 77,
+												"src": "3907:11:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_memory_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 74,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "3907:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3906:13:0"
+									},
+									"src": "3885:35:0"
+								},
+								{
+									"documentation": {
+										"id": 78,
+										"nodeType": "StructuredDocumentation",
+										"src": "3928:219:0",
+										"text": "@notice The asset `decimals` was outside the allowed inclusive range\n         `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.\n @param decimals Offending decimals value."
+									},
+									"errorSelector": "ca950391",
+									"id": 82,
+									"name": "InvalidDecimals",
+									"nameLocation": "4159:15:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 81,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 80,
+												"mutability": "mutable",
+												"name": "decimals",
+												"nameLocation": "4181:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 82,
+												"src": "4175:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 79,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "4175:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "4174:16:0"
+									},
+									"src": "4153:38:0"
+								},
+								{
+									"documentation": {
+										"id": 83,
+										"nodeType": "StructuredDocumentation",
+										"src": "4199:170:0",
+										"text": "@notice One of the `initCalls` reverted. The factory bubbles the underlying revert reason\n         where the call returns one; this error wraps empty reverts."
+									},
+									"errorSelector": "4eae0860",
+									"id": 87,
+									"name": "InitCallFailed",
+									"nameLocation": "4381:14:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 86,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 85,
+												"mutability": "mutable",
+												"name": "index",
+												"nameLocation": "4404:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 87,
+												"src": "4396:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 84,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "4396:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "4395:15:0"
+									},
+									"src": "4375:36:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 88,
+										"nodeType": "StructuredDocumentation",
+										"src": "4602:665:0",
+										"text": "@notice Emitted once per `createB20` invocation, after the token's identity is sealed\n         and before any `initCalls` are dispatched.\n @dev `variantEventParams` carries variant-specific immutable identity data, ABI-encoded\n      and prefixed with a version byte. Empty for ASSET; for STABLECOIN,\n      `abi.encode(B20StablecoinEventParams)` with `currency`.\n @dev `decimals` mirrors the value chosen at creation: configurable in\n      `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]` for ASSET\n      (from `B20AssetCreateParams.decimals`); hardcoded to `6` for STABLECOIN."
+									},
+									"eventSelector": "fd9bf2730513a1709722ff379a0844dfd8f997d600693c2bcc659e188bbdba0d",
+									"id": 103,
+									"name": "B20Created",
+									"nameLocation": "5279:10:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 102,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 90,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "5316:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5300:21:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 89,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "5300:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 93,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "variant",
+												"nameLocation": "5351:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5332:26:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_enum$_B20Variant_$6",
+													"typeString": "enum IB20Factory.B20Variant"
+												},
+												"typeName": {
+													"id": 92,
+													"nodeType": "UserDefinedTypeName",
+													"pathNode": {
+														"id": 91,
+														"name": "B20Variant",
+														"nameLocations": [
+															"5332:10:0"
+														],
+														"nodeType": "IdentifierPath",
+														"referencedDeclaration": 6,
+														"src": "5332:10:0"
+													},
+													"referencedDeclaration": 6,
+													"src": "5332:10:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_enum$_B20Variant_$6",
+														"typeString": "enum IB20Factory.B20Variant"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 95,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "name",
+												"nameLocation": "5376:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5369:11:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_memory_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 94,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "5369:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 97,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "symbol",
+												"nameLocation": "5398:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5391:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_memory_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 96,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "5391:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 99,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "decimals",
+												"nameLocation": "5421:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5415:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 98,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "5415:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 101,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "variantEventParams",
+												"nameLocation": "5446:18:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 103,
+												"src": "5440:24:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes_memory_ptr",
+													"typeString": "bytes"
+												},
+												"typeName": {
+													"id": 100,
+													"name": "bytes",
+													"nodeType": "ElementaryTypeName",
+													"src": "5440:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes_storage_ptr",
+														"typeString": "bytes"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "5289:182:0"
+									},
+									"src": "5273:199:0"
+								},
+								{
+									"documentation": {
+										"id": 104,
+										"nodeType": "StructuredDocumentation",
+										"src": "5663:3010:0",
+										"text": "@notice Creates a B-20 token of the given `variant` at the deterministic address derived\n         from `(variant, msg.sender, salt)`, then dispatches each entry in `initCalls` on\n         the new token. Emits `B20Created`.\n @dev Reverts with `NonPayable` when ETH is attached to the call.\n @dev Reverts with IActivationRegistry.FeatureNotActivated when the variant feature is not activated.\n @dev Reverts with `InvalidVariant` when `variant` is outside the `B20Variant` range.\n @dev Reverts with `UnsupportedVersion` when the leading `version` byte in `params` is unrecognized for `variant`.\n @dev Reverts with `MissingRequiredField` when a required string field is empty (e.g. stablecoin `currency`).\n @dev Reverts with `InvalidCurrency` when a stablecoin `currency` is non-empty but contains a non-`A`-`Z` byte.\n @dev Reverts with `InvalidDecimals` when an asset `decimals` is outside `[B20Constants.MIN_ASSET_DECIMALS, B20Constants.MAX_ASSET_DECIMALS]`.\n @dev Reverts with `TokenAlreadyExists` when a token already exists at the derived address.\n @dev Reverts with `InitCallFailed` (or the bubbled inner reason) when any entry in `initCalls` reverts.\n @dev Each `initCall` executes on the new token within the creation (bootstrap) window, during which\n      factory-originated calls bypass the token's role gates and its transfer-side policy gates\n      (`TRANSFER_SENDER_POLICY`, `TRANSFER_RECEIVER_POLICY`, `TRANSFER_EXECUTOR_POLICY`) — so admin-gated\n      setup (e.g. `grantRole`, `updatePolicy`, `updateSupplyCap`) and bootstrap transfers succeed without\n      the factory holding any role. The bypass is deliberately NOT total:\n      - `MINT_RECEIVER_POLICY` is ALWAYS enforced, including for factory-originated mints, so new supply is\n        never issued to a policy-denied recipient even at creation. An `initCalls` bundle that sets a\n        restrictive `MINT_RECEIVER_POLICY` and then mints to a non-authorized account reverts\n        `PolicyForbids(MINT_RECEIVER_POLICY, ...)` (bubbled out of `createB20`).\n      - Pause is never bypassed. It defaults to nothing-paused at creation, so a start-paused\n        configuration must sequence its `pause(...)` call last among the `initCalls`.\n      - Token invariants (supply-cap math, balance accounting) are never bypassed.\n      The window closes when `createB20` returns; the factory retains no persisted access.\n @param variant   Which variant struct `params` decodes as.\n @param salt      Caller-chosen salt for deterministic address derivation.\n @param params    ABI-encoded variant-specific creation struct, leading with the version byte.\n @param initCalls Bootstrap calls invoked on the new token after identity is sealed.\n @return token The address of the newly created token."
+									},
+									"functionSelector": "62975e6a",
+									"id": 119,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "createB20",
+									"nameLocation": "8688:9:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 115,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 107,
+												"mutability": "mutable",
+												"name": "variant",
+												"nameLocation": "8709:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 119,
+												"src": "8698:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_enum$_B20Variant_$6",
+													"typeString": "enum IB20Factory.B20Variant"
+												},
+												"typeName": {
+													"id": 106,
+													"nodeType": "UserDefinedTypeName",
+													"pathNode": {
+														"id": 105,
+														"name": "B20Variant",
+														"nameLocations": [
+															"8698:10:0"
+														],
+														"nodeType": "IdentifierPath",
+														"referencedDeclaration": 6,
+														"src": "8698:10:0"
+													},
+													"referencedDeclaration": 6,
+													"src": "8698:10:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_enum$_B20Variant_$6",
+														"typeString": "enum IB20Factory.B20Variant"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 109,
+												"mutability": "mutable",
+												"name": "salt",
+												"nameLocation": "8726:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 119,
+												"src": "8718:12:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 108,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "8718:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 111,
+												"mutability": "mutable",
+												"name": "params",
+												"nameLocation": "8747:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 119,
+												"src": "8732:21:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes_calldata_ptr",
+													"typeString": "bytes"
+												},
+												"typeName": {
+													"id": 110,
+													"name": "bytes",
+													"nodeType": "ElementaryTypeName",
+													"src": "8732:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes_storage_ptr",
+														"typeString": "bytes"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 114,
+												"mutability": "mutable",
+												"name": "initCalls",
+												"nameLocation": "8772:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 119,
+												"src": "8755:26:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_array$_t_bytes_calldata_ptr_$dyn_calldata_ptr",
+													"typeString": "bytes[]"
+												},
+												"typeName": {
+													"baseType": {
+														"id": 112,
+														"name": "bytes",
+														"nodeType": "ElementaryTypeName",
+														"src": "8755:5:0",
+														"typeDescriptions": {
+															"typeIdentifier": "t_bytes_storage_ptr",
+															"typeString": "bytes"
+														}
+													},
+													"id": 113,
+													"nodeType": "ArrayTypeName",
+													"src": "8755:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_array$_t_bytes_storage_$dyn_storage_ptr",
+														"typeString": "bytes[]"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8697:85:0"
+									},
+									"returnParameters": {
+										"id": 118,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 117,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "8844:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 119,
+												"src": "8836:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 116,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "8836:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "8835:15:0"
+									},
+									"scope": 149,
+									"src": "8679:172:0",
+									"stateMutability": "payable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 120,
+										"nodeType": "StructuredDocumentation",
+										"src": "9046:368:0",
+										"text": "@notice Returns the deterministic address `createB20` would assign for `(variant, sender, salt)`. Never reverts.\n @param variant Variant of the token whose address is being predicted.\n @param sender  Account that would call `createB20`.\n @param salt    Caller-chosen salt.\n @return The deterministic token address."
+									},
+									"functionSelector": "8c30260f",
+									"id": 132,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "getB20Address",
+									"nameLocation": "9429:13:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 128,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 123,
+												"mutability": "mutable",
+												"name": "variant",
+												"nameLocation": "9454:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 132,
+												"src": "9443:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_enum$_B20Variant_$6",
+													"typeString": "enum IB20Factory.B20Variant"
+												},
+												"typeName": {
+													"id": 122,
+													"nodeType": "UserDefinedTypeName",
+													"pathNode": {
+														"id": 121,
+														"name": "B20Variant",
+														"nameLocations": [
+															"9443:10:0"
+														],
+														"nodeType": "IdentifierPath",
+														"referencedDeclaration": 6,
+														"src": "9443:10:0"
+													},
+													"referencedDeclaration": 6,
+													"src": "9443:10:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_enum$_B20Variant_$6",
+														"typeString": "enum IB20Factory.B20Variant"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 125,
+												"mutability": "mutable",
+												"name": "sender",
+												"nameLocation": "9471:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 132,
+												"src": "9463:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 124,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "9463:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 127,
+												"mutability": "mutable",
+												"name": "salt",
+												"nameLocation": "9487:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 132,
+												"src": "9479:12:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 126,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "9479:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9442:50:0"
+									},
+									"returnParameters": {
+										"id": 131,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 130,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 132,
+												"src": "9516:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 129,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "9516:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9515:9:0"
+									},
+									"scope": 149,
+									"src": "9420:105:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 133,
+										"nodeType": "StructuredDocumentation",
+										"src": "9533:238:0",
+										"text": "@notice Returns whether `token` was created by this factory, recovered from the address prefix. Never reverts.\n @param token Address to check.\n @return Whether `token` matches the B-20 address prefix."
+									},
+									"functionSelector": "fa19b927",
+									"id": 140,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "isB20",
+									"nameLocation": "9786:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 136,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 135,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "9800:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 140,
+												"src": "9792:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 134,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "9792:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9791:15:0"
+									},
+									"returnParameters": {
+										"id": 139,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 138,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 140,
+												"src": "9830:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 137,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "9830:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "9829:6:0"
+									},
+									"scope": 149,
+									"src": "9777:59:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 141,
+										"nodeType": "StructuredDocumentation",
+										"src": "9844:290:0",
+										"text": "@notice Returns whether `createB20` has run to completion at `token`. Flips exactly once,\n         the moment the creating `createB20` call returns. Never reverts.\n @param token Address to check.\n @return Whether `token` is an initialized B-20."
+									},
+									"functionSelector": "6a45ba98",
+									"id": 148,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "isB20Initialized",
+									"nameLocation": "10149:16:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 144,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 143,
+												"mutability": "mutable",
+												"name": "token",
+												"nameLocation": "10174:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 148,
+												"src": "10166:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 142,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "10166:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "10165:15:0"
+									},
+									"returnParameters": {
+										"id": 147,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 146,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 148,
+												"src": "10204:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 145,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "10204:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "10203:6:0"
+									},
+									"scope": 149,
+									"src": "10140:70:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 150,
+							"src": "372:9841:0",
+							"usedErrors": [
+								51,
+								56,
+								59,
+								67,
+								72,
+								77,
+								82,
+								87
+							],
+							"usedEvents": [
+								103
+							]
+						}
+					],
+					"src": "33:10180:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

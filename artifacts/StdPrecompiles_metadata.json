@@ -1,0 +1,53 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"B20/StdPrecompiles.sol": "StdPrecompiles"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"B20/IB20Factory.sol": {
+			"keccak256": "0x7fa39cea339ef038fa5c7e306acf0c94dc7ae97e9d913c9f1b241ac08801f9aa",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://225f042779123f47faa5cc59b400696267107bcd6da15636fc137bc6bac42c84",
+				"dweb:/ipfs/Qmbw43nZmfKKXtMKJusjykfzKbUsh4mwLnpxcNq7SnyDCD"
+			]
+		},
+		"B20/StdPrecompiles.sol": {
+			"keccak256": "0x3b97661217df11969551b99649f518b4d4bc072b5adacb69cc885c712c53e625",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://46a422e54293c42b2e76af8abd73bba7f53de952f1732ca903e8f24859fe29a0",
+				"dweb:/ipfs/QmSRFdjfTFDHkipxCU2hNpn8g4D1CbvTiGYEzpnGhv2DXd"
+			]
+		}
+	},
+	"version": 1
+}

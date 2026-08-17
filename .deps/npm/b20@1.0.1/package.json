@@ -1,0 +1,33 @@
+{
+  "name": "b20",
+  "version": "1.0.1",
+  "description": "manage billing net power and gas for italy",
+  "main": "index.js",
+  "repository": {
+    "url": "git@bitbucket.org:yumber/b20.git"
+  },
+  "scripts": {
+    "start": "node gas.js",
+    "build": "rimraf ./dist && npx tsc",
+    "clean": "rimraf ./dist",
+    "nodemon": "nodemon ."
+  },
+  "author": "@yumberramirez",
+  "license": "ISC",
+  "dependencies": {
+    "apollo-server": "^2.25.0",
+    "delete": "^1.1.0",
+    "graphql": "^15.5.0",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.20",
+    "mongoose": "5.11.15"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.168",
+    "@types/mongoose": "^5.10.3",
+    "@types/node": "^14.14.28",
+    "nodemon": "^2.0.7",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.1.5"
+  }
+}

@@ -1,0 +1,193 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "symbol",
+						"type": "string"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "admin",
+						"type": "address"
+					}
+				],
+				"name": "TokenCreated",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "symbol",
+						"type": "string"
+					},
+					{
+						"internalType": "uint8",
+						"name": "decimals",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "maxSupply",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bytes32",
+						"name": "salt",
+						"type": "bytes32"
+					}
+				],
+				"name": "createToken",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "lastCreatedToken",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"B20/B20Creator.sol": "B20Creator"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"B20/B20Constants.sol": {
+			"keccak256": "0x71f046907cd3ef47e39f7b69ad9aae3e66dda497ff869114032f8c75ec9af9c2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://0281bea30c9ca6d8db44f65e2f0ccd5e750a0418e4a640c0e8b491470657e92e",
+				"dweb:/ipfs/Qmb91YATqPM1BMc4rzsDicQWBZb41JuB26XqPrqzZpCUXu"
+			]
+		},
+		"B20/B20Creator.sol": {
+			"keccak256": "0x6b1be9efb5b43fdfc3434619d5201d74df2bd77ac8e83e13563e8974c93ba7ea",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a8df1c889b11308cb145f280fdbb1f47a21b231567ba7aa9b50bcbf932ffcb9f",
+				"dweb:/ipfs/QmWoK6m1G7dm2ebtffrvQF2eTc4bF4B29627zdP2RocJu9"
+			]
+		},
+		"B20/B20FactoryLib.sol": {
+			"keccak256": "0xefdc7aa0ea1c0df39bf2132242806f234c601864e730c014776fd8bb682692a2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://b9a709b03d3ec6c33ebb8d85316da78fde10ec3c6ac4876a93f7bb1e8501a569",
+				"dweb:/ipfs/QmW1qf8VCxuzUbT4j6h9pZjVUtsQAZvzCm374cuZb2rZvU"
+			]
+		},
+		"B20/IB20.sol": {
+			"keccak256": "0xf10a2727055e7d6b1b937f5b6c98c45e82216792296077581d85f965d5f8a583",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f358ddd54e7a9036f24a4da1fed0c777cc0761560484b7dae7ca9d3a18728b6a",
+				"dweb:/ipfs/QmXjEfNkSx6eroCtTDvPZdu7hi8TAbVK4NRVUxv2snhe95"
+			]
+		},
+		"B20/IB20Asset.sol": {
+			"keccak256": "0xda7144a67f93dbd27512c1f3e8f71571316dafb9e22d83805f839ba2a999a435",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c5785e654edf84d220db20aa582e8c4da5152268bf3be862029cf95e6d7f622e",
+				"dweb:/ipfs/QmQ7NTj8bbMbgMYpLsYeorAxs1eh7DPQFVrrVkjF8AsAgc"
+			]
+		},
+		"B20/IB20Factory.sol": {
+			"keccak256": "0x7fa39cea339ef038fa5c7e306acf0c94dc7ae97e9d913c9f1b241ac08801f9aa",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://225f042779123f47faa5cc59b400696267107bcd6da15636fc137bc6bac42c84",
+				"dweb:/ipfs/Qmbw43nZmfKKXtMKJusjykfzKbUsh4mwLnpxcNq7SnyDCD"
+			]
+		},
+		"B20/IERC165.sol": {
+			"keccak256": "0xcda778e0517ac5b185c15e7d474fd8eb74949a2a5d8303fdb1155136132527bf",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://9a478917a53ee619ce4448c14da9855fc754c0e6c462b14ada5f6c2cde632d2b",
+				"dweb:/ipfs/QmNdcfoM94RFTwwDq1NvJdmg3bDt4PyFzMPfF5JUHFwDMG"
+			]
+		},
+		"B20/IERC8056.sol": {
+			"keccak256": "0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0",
+				"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7"
+			]
+		},
+		"B20/StdPrecompiles.sol": {
+			"keccak256": "0x3b97661217df11969551b99649f518b4d4bc072b5adacb69cc885c712c53e625",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://46a422e54293c42b2e76af8abd73bba7f53de952f1732ca903e8f24859fe29a0",
+				"dweb:/ipfs/QmSRFdjfTFDHkipxCU2hNpn8g4D1CbvTiGYEzpnGhv2DXd"
+			]
+		}
+	},
+	"version": 1
+}

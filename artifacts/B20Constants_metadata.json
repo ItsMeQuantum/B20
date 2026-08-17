@@ -1,0 +1,47 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"title": "B20Constants",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"notice": "Canonical B-20 role and policy-type constants, exposed for compile-time use.",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"B20/B20Constants.sol": "B20Constants"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"B20/B20Constants.sol": {
+			"keccak256": "0x71f046907cd3ef47e39f7b69ad9aae3e66dda497ff869114032f8c75ec9af9c2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://0281bea30c9ca6d8db44f65e2f0ccd5e750a0418e4a640c0e8b491470657e92e",
+				"dweb:/ipfs/Qmb91YATqPM1BMc4rzsDicQWBZb41JuB26XqPrqzZpCUXu"
+			]
+		}
+	},
+	"version": 1
+}

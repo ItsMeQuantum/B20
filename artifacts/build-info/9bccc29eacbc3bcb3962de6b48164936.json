@@ -1,0 +1,1058 @@
+{
+	"id": "9bccc29eacbc3bcb3962de6b48164936",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.34",
+	"solcLongVersion": "0.8.34+commit.80d5c536",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"B20/IERC8056.sol": {
+				"content": "// SPDX-License-Identifier: MIT\r\npragma solidity >=0.8.20 <0.9.0;\r\n\r\ninterface IScaledUIAmount {\r\n    event UIMultiplierUpdated(\r\n        uint256 oldMultiplier,\r\n        uint256 newMultiplier,\r\n        uint256 effectiveAtTimestamp\r\n    );\r\n\r\n    function uiMultiplier()\r\n        external\r\n        view\r\n        returns (uint256);\r\n}\r\n\r\ninterface IScaledUIAmountNewUIMultiplier {\r\n    function newUIMultiplier()\r\n        external\r\n        view\r\n        returns (uint256);\r\n\r\n    function effectiveAt()\r\n        external\r\n        view\r\n        returns (uint256);\r\n}\r\n\r\ninterface IScaledUIAmountBalances {\r\n    function balanceOfUI(\r\n        address account\r\n    ) external view returns (uint256);\r\n\r\n    function totalSupplyUI()\r\n        external\r\n        view\r\n        returns (uint256);\r\n}\r\n\r\ninterface IScaledUIAmountConversion {\r\n    function toUIAmount(\r\n        uint256 rawAmount\r\n    ) external view returns (uint256);\r\n\r\n    function fromUIAmount(\r\n        uint256 uiAmount\r\n    ) external view returns (uint256);\r\n}"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": false,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": []
+		}
+	},
+	"output": {
+		"contracts": {
+			"B20/IERC8056.sol": {
+				"IScaledUIAmount": {
+					"abi": [
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "oldMultiplier",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "newMultiplier",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "effectiveAtTimestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "UIMultiplierUpdated",
+							"type": "event"
+						},
+						{
+							"inputs": [],
+							"name": "uiMultiplier",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"uiMultiplier()": "a60bf13d"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.34+commit.80d5c536\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"oldMultiplier\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newMultiplier\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"effectiveAtTimestamp\",\"type\":\"uint256\"}],\"name\":\"UIMultiplierUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"uiMultiplier\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"B20/IERC8056.sol\":\"IScaledUIAmount\"},\"evmVersion\":\"osaka\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"B20/IERC8056.sol\":{\"keccak256\":\"0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0\",\"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"version": 1
+					}
+				},
+				"IScaledUIAmountBalances": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "account",
+									"type": "address"
+								}
+							],
+							"name": "balanceOfUI",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "totalSupplyUI",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"balanceOfUI(address)": "437a9958",
+							"totalSupplyUI()": "9bea6429"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.34+commit.80d5c536\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOfUI\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupplyUI\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"B20/IERC8056.sol\":\"IScaledUIAmountBalances\"},\"evmVersion\":\"osaka\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"B20/IERC8056.sol\":{\"keccak256\":\"0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0\",\"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"version": 1
+					}
+				},
+				"IScaledUIAmountConversion": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "uiAmount",
+									"type": "uint256"
+								}
+							],
+							"name": "fromUIAmount",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint256",
+									"name": "rawAmount",
+									"type": "uint256"
+								}
+							],
+							"name": "toUIAmount",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"fromUIAmount(uint256)": "65cd9b3c",
+							"toUIAmount(uint256)": "3248d4ff"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.34+commit.80d5c536\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"uiAmount\",\"type\":\"uint256\"}],\"name\":\"fromUIAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"rawAmount\",\"type\":\"uint256\"}],\"name\":\"toUIAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"B20/IERC8056.sol\":\"IScaledUIAmountConversion\"},\"evmVersion\":\"osaka\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"B20/IERC8056.sol\":{\"keccak256\":\"0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0\",\"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"version": 1
+					}
+				},
+				"IScaledUIAmountNewUIMultiplier": {
+					"abi": [
+						{
+							"inputs": [],
+							"name": "effectiveAt",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "newUIMultiplier",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"effectiveAt()": "97a4064f",
+							"newUIMultiplier()": "dc767007"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.34+commit.80d5c536\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"effectiveAt\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"newUIMultiplier\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"B20/IERC8056.sol\":\"IScaledUIAmountNewUIMultiplier\"},\"evmVersion\":\"osaka\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"B20/IERC8056.sol\":{\"keccak256\":\"0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0\",\"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"B20/IERC8056.sol": {
+				"ast": {
+					"absolutePath": "B20/IERC8056.sol",
+					"exportedSymbols": {
+						"IScaledUIAmount": [
+							15
+						],
+						"IScaledUIAmountBalances": [
+							39
+						],
+						"IScaledUIAmountConversion": [
+							54
+						],
+						"IScaledUIAmountNewUIMultiplier": [
+							26
+						]
+					},
+					"id": 55,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								">=",
+								"0.8",
+								".20",
+								"<",
+								"0.9",
+								".0"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "33:32:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IScaledUIAmount",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 15,
+							"linearizedBaseContracts": [
+								15
+							],
+							"name": "IScaledUIAmount",
+							"nameLocation": "79:15:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"anonymous": false,
+									"eventSelector": "2205df4534432b2f60654a3fdb48737ffdaf3e9edb1a498bd985bc026b15b055",
+									"id": 9,
+									"name": "UIMultiplierUpdated",
+									"nameLocation": "108:19:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 8,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 3,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "oldMultiplier",
+												"nameLocation": "146:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 9,
+												"src": "138:21:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 2,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "138:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 5,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "newMultiplier",
+												"nameLocation": "178:13:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 9,
+												"src": "170:21:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 4,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "170:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 7,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "effectiveAtTimestamp",
+												"nameLocation": "210:20:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 9,
+												"src": "202:28:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 6,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "202:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "127:110:0"
+									},
+									"src": "102:136:0"
+								},
+								{
+									"functionSelector": "a60bf13d",
+									"id": 14,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "uiMultiplier",
+									"nameLocation": "255:12:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 10,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "267:2:0"
+									},
+									"returnParameters": {
+										"id": 13,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 12,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 14,
+												"src": "320:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 11,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "320:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "319:9:0"
+									},
+									"scope": 15,
+									"src": "246:83:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 55,
+							"src": "69:263:0",
+							"usedErrors": [],
+							"usedEvents": [
+								9
+							]
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IScaledUIAmountNewUIMultiplier",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 26,
+							"linearizedBaseContracts": [
+								26
+							],
+							"name": "IScaledUIAmountNewUIMultiplier",
+							"nameLocation": "346:30:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"functionSelector": "dc767007",
+									"id": 20,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "newUIMultiplier",
+									"nameLocation": "393:15:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 16,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "408:2:0"
+									},
+									"returnParameters": {
+										"id": 19,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 18,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 20,
+												"src": "461:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 17,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "461:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "460:9:0"
+									},
+									"scope": 26,
+									"src": "384:86:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "97a4064f",
+									"id": 25,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "effectiveAt",
+									"nameLocation": "487:11:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 21,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "498:2:0"
+									},
+									"returnParameters": {
+										"id": 24,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 23,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 25,
+												"src": "551:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 22,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "551:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "550:9:0"
+									},
+									"scope": 26,
+									"src": "478:82:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 55,
+							"src": "336:227:0",
+							"usedErrors": [],
+							"usedEvents": []
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IScaledUIAmountBalances",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 39,
+							"linearizedBaseContracts": [
+								39
+							],
+							"name": "IScaledUIAmountBalances",
+							"nameLocation": "577:23:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"functionSelector": "437a9958",
+									"id": 33,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "balanceOfUI",
+									"nameLocation": "617:11:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 29,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 28,
+												"mutability": "mutable",
+												"name": "account",
+												"nameLocation": "647:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 33,
+												"src": "639:15:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 27,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "639:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "628:33:0"
+									},
+									"returnParameters": {
+										"id": 32,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 31,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 33,
+												"src": "685:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 30,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "685:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "684:9:0"
+									},
+									"scope": 39,
+									"src": "608:86:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "9bea6429",
+									"id": 38,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "totalSupplyUI",
+									"nameLocation": "711:13:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 34,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "724:2:0"
+									},
+									"returnParameters": {
+										"id": 37,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 36,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 38,
+												"src": "777:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 35,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "777:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "776:9:0"
+									},
+									"scope": 39,
+									"src": "702:84:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 55,
+							"src": "567:222:0",
+							"usedErrors": [],
+							"usedEvents": []
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IScaledUIAmountConversion",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 54,
+							"linearizedBaseContracts": [
+								54
+							],
+							"name": "IScaledUIAmountConversion",
+							"nameLocation": "803:25:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"functionSelector": "3248d4ff",
+									"id": 46,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "toUIAmount",
+									"nameLocation": "845:10:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 42,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 41,
+												"mutability": "mutable",
+												"name": "rawAmount",
+												"nameLocation": "874:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 46,
+												"src": "866:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 40,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "866:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "855:35:0"
+									},
+									"returnParameters": {
+										"id": 45,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 44,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 46,
+												"src": "914:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 43,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "914:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "913:9:0"
+									},
+									"scope": 54,
+									"src": "836:87:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"functionSelector": "65cd9b3c",
+									"id": 53,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "fromUIAmount",
+									"nameLocation": "940:12:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 49,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 48,
+												"mutability": "mutable",
+												"name": "uiAmount",
+												"nameLocation": "971:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 53,
+												"src": "963:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 47,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "963:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "952:34:0"
+									},
+									"returnParameters": {
+										"id": 52,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 51,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 53,
+												"src": "1010:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 50,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "1010:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "1009:9:0"
+									},
+									"scope": 54,
+									"src": "931:88:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 55,
+							"src": "793:229:0",
+							"usedErrors": [],
+							"usedEvents": []
+						}
+					],
+					"src": "33:989:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

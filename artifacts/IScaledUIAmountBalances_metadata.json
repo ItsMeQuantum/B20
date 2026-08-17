@@ -1,0 +1,78 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "balanceOfUI",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalSupplyUI",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"B20/IERC8056.sol": "IScaledUIAmountBalances"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"B20/IERC8056.sol": {
+			"keccak256": "0x0748b0c746c7d680fee757f290793179353c3ef4842a70fd70576ff7e92a0f1a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://15864bab0042e61296d3dc283bba560266ea387abdc4978878ece984cb6166d0",
+				"dweb:/ipfs/QmeT7nYQ6gnKtEwuTRPKzyyZPDH1DA4BAsnGVRy1VSUDP7"
+			]
+		}
+	},
+	"version": 1
+}
