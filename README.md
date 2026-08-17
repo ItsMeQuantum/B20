@@ -20,7 +20,7 @@ supply cap → receive a deterministic token address.
 
 ------------------------------------------------------------------------
 
-## ✤ What is this project?
+## ❖ What is this project?
 
 This repository is a Solidity/Remix-oriented integration around the
 **B20 token system**.
