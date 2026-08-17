@@ -954,7 +954,7 @@ supported application flows.
                                    │ transaction
                                    ▼
                          ┌────────────────────┐
-                         │    B20Creator     │
+                         │    B20Creator      │
                          │                    │
                          │ createToken(...)   │
                          └─────────┬──────────┘
@@ -1115,7 +1115,7 @@ A complete creation looks like this:
 
 # 🧪 Creating a token --- conceptual example
 
-Suppose the user wants:
+Suppose the we wants:
 
 ``` text
 Name:        Quantum Token
@@ -1334,7 +1334,7 @@ A much easier order is:
 8. ERC721.sol
 ```
 
-Why?
+Why is that?
 
 Because `B20Creator.sol` tells you **why the other files exist**.
 
@@ -1414,8 +1414,7 @@ MIT License
 ```{=html}
 <p align="center">
 ```
-`<strong>`{=html}Built around B20. Explained for
-humans.`</strong>`{=html}
+`<strong>`{=html}Built around B20. Author Quantum.`</strong>`{=html}
 ```{=html}
 </p>
 ```
