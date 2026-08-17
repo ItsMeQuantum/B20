@@ -35,7 +35,7 @@ B20 tokens operate directly inside the Base node software via Rust precompiles. 
 <p align="center">
 ```
 `<strong>`{=html}A small Solidity project that turns Base's B20 token
-interface into a practical, developer-friendly creation
+interface into a practical, developer friendly creation
 flow.`</strong>`{=html}
 ```{=html}
 </p>
@@ -53,7 +53,7 @@ supply cap → receive a deterministic token address.
 
 ## ❖ What is this project?
 
-This repository is a Solidity/Remix-oriented integration around the
+This repository is a Solidity/Remix oriented integration around the
 **B20 token system**.
 
 At first glance, the project looks like a collection of interfaces and
@@ -61,7 +61,7 @@ helper libraries. The important idea is simpler:
 
 > **The code in this repository does not implement the entire B20
 > protocol from scratch. It talks to the B20 factory precompile and
-> gives developers a convenient way to create and configure B20
+> gives developers like us a convenient way to create and configure B20
 > tokens.**
 
 The main entry point is `B20Creator.sol`.
@@ -142,7 +142,7 @@ layers:
 │  • policies                                              │
 │  • supply cap                                            │
 │  • permit                                                │
-│  • Asset-specific features                               │
+│  • Asset specific features                               │
 └──────────────────────────────────────────────────────────┘
 ```
 
